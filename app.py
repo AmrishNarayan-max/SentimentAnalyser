@@ -16,3 +16,4 @@ if st.button("Analyze"):
         st.success("✅ Positive Sentiment")
     else:
         st.error("❌ Negative Sentiment")
+    st.write(f"Confidence: {confidence}%") 
