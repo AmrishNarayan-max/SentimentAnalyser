@@ -8,10 +8,11 @@ from difflib import get_close_matches
 
 nltk.download('vader_lexicon')
 
-# ─── ML LOGIC ───────────────────────────────────────────────
+# ─── LOAD MODELS ─────────────────────────────────────────────
 model = pickle.load(open('model.pkl', 'rb'))
 vectorizer = pickle.load(open('vectorizer.pkl', 'rb'))
 
+# ─── LOAD DATA ───────────────────────────────────────────────
 @st.cache_data
 def load_movie_list():
     url = "https://raw.githubusercontent.com/nitishghosal/IMDB-Data-Analysis/master/movie_metadata.csv"
@@ -23,6 +24,7 @@ def load_reviews():
     df = pd.read_csv("reviews_small.csv")
     return df
 
+# ─── ML LOGIC ────────────────────────────────────────────────
 def normalize(text):
     return text.strip().lower()
 
@@ -34,20 +36,36 @@ def validate_movie(movie_input, movie_list):
     suggestion = close[0].title() if close else None
     return False, suggestion
 
+def preprocess(text):
+    text = text.lower()
+    text = re.sub(r'<.*?>', '', text)
+    text = re.sub(r'[^a-zA-Z\s]', '', text)
+    text = re.sub(r"\bnot\s+(\w+)", r"not_\1", text)
+    text = re.sub(r"\bnever\s+(\w+)", r"never_\1", text)
+    text = re.sub(r"\bno\s+(\w+)", r"no_\1", text)
+    return text
+
 def predict_sentiment(text):
+    # ── ML part: TF-IDF + Logistic Regression ──
+    cleaned = preprocess(text)
+    vectorized = vectorizer.transform([cleaned])
+    lr_prob = model.predict_proba(vectorized)[0]
+    lr_score = lr_prob[1] - lr_prob[0]  # positive - negative
+
+    # ── Rule based part: VADER (handles negations) ──
     sia = SentimentIntensityAnalyzer()
-    score = sia.polarity_scores(text)
-    compound = score['compound']
-    if compound >= 0.05:
-        label = "Positive"
-        confidence = round((compound + 1) / 2 * 100, 2)
-    else:
-        label = "Negative"
-        confidence = round((1 - (compound + 1) / 2) * 100, 2)
+    vader_score = sia.polarity_scores(text)['compound']
+
+    # ── Combine both (average) ──
+    final_score = (lr_score + vader_score) / 2
+
+    label = "Positive" if final_score >= 0 else "Negative"
+    confidence = round(abs(final_score) * 100, 2)
+    confidence = min(confidence, 99.99)  # cap at 99.99%
+
     return label, confidence
 
 def get_top_reviews(df, n=5):
-    # get random 5 reviews with their sentiment
     sample = df.sample(n=n)
     reviews = []
     sia = SentimentIntensityAnalyzer()
@@ -86,7 +104,7 @@ def build_review_card(review):
             border-radius:12px;
             padding:15px 20px;
             margin-bottom:12px;
-            border-left: 4px solid {badge_color};
+            border-left:4px solid {badge_color};
         ">
             <span style="
                 background:{badge_color};
@@ -102,10 +120,12 @@ def build_review_card(review):
         </div>
     """
 
+# ─── STREAMLIT UI ────────────────────────────────────────────
 st.title("🎬 Sentiment Analyzer")
 
 movie_list = load_movie_list()
 df_reviews = load_reviews()
+
 movie_input = st.text_input("🎥 Enter Movie Name:")
 
 if movie_input:
@@ -127,9 +147,10 @@ if movie_input:
 
             st.markdown(bar_html, unsafe_allow_html=True)
 
+        # ─── REVIEWS SECTION ─────────────────────────────────
         st.markdown("---")
-        st.markdown("### 💬 Top Reviews")
-        st.markdown("*Here are some reviews from our database:*")
+        st.markdown("### 💬 Sample Reviews from Database")
+        st.caption("*These are random reviews from our IMDB database*")
 
         top_reviews = get_top_reviews(df_reviews)
         cards_html = "".join([build_review_card(r) for r in top_reviews])
