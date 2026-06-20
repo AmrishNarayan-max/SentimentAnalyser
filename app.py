@@ -33,7 +33,7 @@ def build_confidence_bar(confidence, color, emoji):
         <p style="text-align:center;margin-top:8px;">Confidence: <b>{confidence}%</b></p>
     """
 
-st.title("🎬 Sentiment Analyzer")
+st.title("MOVIE Sentiment Analyzer")
 text = st.text_area("Enter your review:")
 
 if st.button("Analyze"):
