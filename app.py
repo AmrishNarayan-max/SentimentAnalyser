@@ -19,3 +19,9 @@ if st.button("Analyze"):
         st.error("❌ Negative Sentiment")
     st.write(f"Confidence: {confidence}%") 
     st.progress(confidence/100)
+    if confidence > 80:
+        st.write("🔥 Very Confident!")
+    elif confidence > 60:
+        st.write("🤔 Somewhat Confident")
+    else:
+        st.write("😕 Not Very Sure")
