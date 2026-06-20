@@ -8,10 +8,9 @@ vectorizer = pickle.load(open('vectorizer.pkl', 'rb'))
 
 @st.cache_data
 def load_movie_list():
-    df = pd.read_csv('IMDB Dataset.csv')
-
-    movies = pd.read_csv('movie_titles.csv') 
-    return set(movies['title'].str.lower().tolist())
+    url = "https://raw.githubusercontent.com/nitishghosal/IMDB-Data-Analysis/master/movie_metadata.csv"
+    df = pd.read_csv(url)
+    return set(df['movie_title'].str.lower().str.strip().tolist())
 
 def normalize(text):
     return text.strip().lower()
