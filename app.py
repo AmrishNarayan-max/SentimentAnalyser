@@ -11,7 +11,8 @@ if st.button("Analyze"):
     cleaned = text.lower()
     vectorized = vectorizer.transform([cleaned])
     result = model.predict(vectorized)[0]
-    
+    prob = model.predict_proba(vectorized)[0]
+    confidence = round(max(prob) * 100, 2)
     if result == 1:
         st.success("✅ Positive Sentiment")
     else:
