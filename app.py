@@ -2,7 +2,11 @@ import streamlit as st
 import pickle
 import pandas as pd
 import re
+import nltk
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from difflib import get_close_matches
+
+nltk.download('vader_lexicon')
 
 # ─── ML LOGIC ───────────────────────────────────────────────
 model = pickle.load(open('model.pkl', 'rb'))
@@ -25,24 +29,18 @@ def validate_movie(movie_input, movie_list):
     suggestion = close[0].title() if close else None
     return False, suggestion
 
-def preprocess(text):
-    text = text.lower()
-    # handle negations — "never bad" becomes "never_bad"
-    text = re.sub(r"\bnot\s+(\w+)", r"not_\1", text)
-    text = re.sub(r"\bnever\s+(\w+)", r"never_\1", text)
-    text = re.sub(r"\bwasn't\s+(\w+)", r"wasnt_\1", text)
-    text = re.sub(r"\bisn't\s+(\w+)", r"isnt_\1", text)
-    text = re.sub(r"\bwouldn't\s+(\w+)", r"wouldnt_\1", text)
-    text = re.sub(r"\bno\s+(\w+)", r"no_\1", text)
-    return text
-
 def predict_sentiment(text):
-    cleaned = preprocess(text)
-    vectorized = vectorizer.transform([cleaned])
-    result = model.predict(vectorized)[0]
-    prob = model.predict_proba(vectorized)[0]
-    confidence = round(max(prob) * 100, 2)
-    label = "Positive" if result == 1 else "Negative"
+    sia = SentimentIntensityAnalyzer()
+    score = sia.polarity_scores(text)
+    compound = score['compound']
+
+    if compound >= 0.05:
+        label = "Positive"
+        confidence = round((compound + 1) / 2 * 100, 2)
+    else:
+        label = "Negative"
+        confidence = round((1 - (compound + 1) / 2) * 100, 2)
+
     return label, confidence
 
 def get_confidence_style(confidence):
