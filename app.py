@@ -20,7 +20,8 @@ def load_movie_list():
 
 @st.cache_data
 def load_reviews():
-    df = pd.read_csv("IMDB Dataset.csv")
+    url = "https://raw.githubusercontent.com/bestvater/misc/master/IMDB%20Dataset.csv"
+    df = pd.read_csv(url)
     return df
 
 def normalize(text):
