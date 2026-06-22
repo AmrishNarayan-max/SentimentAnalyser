@@ -8,11 +8,10 @@ from difflib import get_close_matches
 
 nltk.download('vader_lexicon')
 
-# ─── LOAD MODELS ─────────────────────────────────────────────
+
 model = pickle.load(open('model.pkl', 'rb'))
 vectorizer = pickle.load(open('vectorizer.pkl', 'rb'))
 
-# ─── LOAD DATA ───────────────────────────────────────────────
 @st.cache_data
 def load_movie_list():
     url = "https://raw.githubusercontent.com/nitishghosal/IMDB-Data-Analysis/master/movie_metadata.csv"
@@ -24,7 +23,7 @@ def load_reviews():
     df = pd.read_csv("reviews_small.csv")
     return df
 
-# ─── ML LOGIC ────────────────────────────────────────────────
+
 def normalize(text):
     return text.strip().lower()
 
@@ -46,22 +45,22 @@ def preprocess(text):
     return text
 
 def predict_sentiment(text):
-    # ── ML part: TF-IDF + Logistic Regression ──
+
     cleaned = preprocess(text)
     vectorized = vectorizer.transform([cleaned])
     lr_prob = model.predict_proba(vectorized)[0]
-    lr_score = lr_prob[1] - lr_prob[0]  # positive - negative
+    lr_score = lr_prob[1] - lr_prob[0] 
 
-    # ── Rule based part: VADER (handles negations) ──
+
     sia = SentimentIntensityAnalyzer()
     vader_score = sia.polarity_scores(text)['compound']
 
-    # ── Combine both (average) ──
+
     final_score = (lr_score + vader_score) / 2
 
     label = "Positive" if final_score >= 0 else "Negative"
     confidence = round(abs(final_score) * 100, 2)
-    confidence = min(confidence, 99.99)  # cap at 99.99%
+    confidence = min(confidence, 99.99)  
 
     return label, confidence
 
@@ -120,7 +119,7 @@ def build_review_card(review):
         </div>
     """
 
-# ─── STREAMLIT UI ────────────────────────────────────────────
+
 st.title("🎬 Sentiment Analyzer")
 
 movie_list = load_movie_list()
@@ -147,7 +146,6 @@ if movie_input:
 
             st.markdown(bar_html, unsafe_allow_html=True)
 
-        # ─── REVIEWS SECTION ─────────────────────────────────
         st.markdown("---")
         st.markdown("### 💬 Sample Reviews from Database")
         st.caption("*These are random reviews from our IMDB database*")
